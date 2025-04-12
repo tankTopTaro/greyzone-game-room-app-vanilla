@@ -1,0 +1,8 @@
+{
+    "roomType": "basketball",
+    "hostname": "localhost",
+    "gameRules": [1],
+    "gameLevels": [1,2,3],
+    "prepareLights": "/lights-config.json",
+    "prepareShapes": "/shapes-config.json"
+}
