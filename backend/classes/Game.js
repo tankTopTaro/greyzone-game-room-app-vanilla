@@ -601,7 +601,6 @@ export default class Game {
     }
 
     // Session
-
     trackBookRoomTime() {
       if (this.bookRoomInterval) clearInterval(this.bookRoomInterval)
 
