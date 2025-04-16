@@ -610,6 +610,7 @@ export default class Game {
       this.room.isFree = true
       this.room.currentGameSession = undefined
       this.room.currentGame = undefined
+      this.clearGameStates()
     }
 
     // Session
