@@ -31,13 +31,11 @@ The following technologies and frameworks are used in this application:
 To get started with the Greyzone Game Room App, follow these steps:
 
 1. **Install Dependencies**  
-   - Install the necessary dependencies for both the backend and frontend:
    ```bash 
    npm install
    ```
 
-2. **Start the Backend**  
-   - Start the backend server:
+2. **Start the App**  
    ```bash 
    npm start
    ```
