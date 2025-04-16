@@ -1,0 +1,39 @@
+{
+  "players": [
+    {
+      "id": "F1-1",
+      "nick_name": "Shadow",
+      "date_add": "2025-02-14",
+      "last_name": "Smith",
+      "first_name": "John",
+      "gender": "Male",
+      "birth_date": "1995-08-21T00:00:00.000Z",
+      "league": {
+        "country": "USA",
+        "city": "New York",
+        "district": "Manhattan",
+        "other": "University League"
+      },
+      "games_history": {
+        "basketball > gameRuleOne > L1": {
+          "best_time": 0,
+          "played": 0,
+          "played_today": 0
+        }
+      },
+      "facility_session": {
+        "date_start": "2025-04-16T04:19:00.571Z",
+        "duration_m": 15,
+        "date_end": "2025-04-16T04:34:00.571Z"
+      },
+      "events_to_debrief": []
+    }
+  ],
+  "team": null,
+  "roomType": "basketball",
+  "rule": "gameRuleOne",
+  "level": "1",
+  "book_room_until": "2025-04-16T04:36:01.914Z",
+  "countdown": 115,
+  "prepTime": 0
+}

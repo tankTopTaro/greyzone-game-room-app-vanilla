@@ -20,6 +20,10 @@ class WebSocketService {
 
                 // send initial message to register clientname
                 this.send({ clientname: this.clientname, message: 'Hello from browser!' })
+
+                if (typeof this.onReconnect === 'function') {
+                  this.onReconnect()
+               }
             }
 
             this.socket.onmessage = (event) => {

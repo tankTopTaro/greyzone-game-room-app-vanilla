@@ -5,36 +5,27 @@ import { formatDate, formatTime } from "./FormatDateAndTime.js"
 document.title = `GRA | Room`
 
 const WS_URL = `ws://${window.location.hostname}:8082`
-const CLIENT = 'room'
+const CLIENT = 'room-screen'
 
 let wsService = null
 
-const lifesContainerElement = document.getElementById('lifes-container')
 const countdownElement = document.getElementById('countdown')
 const colorSequenceElement = document.getElementById('color-sequence')
 const roomInfoElement = document.getElementById('room-info')
+const teamNameElement = document.getElementById('team-name')
 const roomPlayersElement = document.getElementById('room-players')
-const roomMessageContainer = document.getElementById('room-message')
-
-const heartSVG = `<svg id="heart" xmlns="http://www.w3.org/2000/svg" width="35" height="35" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-heart">
-                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572" />
-                </svg>`
-
-const heartbreakSVG = `<svg id="heart-broken" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-heart-broken">
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                    <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572" />
-                    <path d="M12 6l-2 4l4 3l-2 4v3" />
-                    </svg>` 
+const roomMessageElement = document.getElementById('room-message')
 
 let currentSpanIndex = 0;
 
 function startListeningToSocket() {
     function handleWebSocketMessage(data) {
+      console.log(data)
         const messageHandlers = {
             //'bookRoomCountdown': () => console.log(data.remainingTime),
             'bookRoomExpired': () => {
                 renderRoomMessageData(data.message)
+                resetDisplay()
             },
             'bookRoomWarning': () => () => {
                 renderRoomMessageData(data.message)
@@ -43,12 +34,16 @@ function startListeningToSocket() {
                 playAudio(data['cache-audio-file-and-play'])
             },
             'colorNamesEnd': () => {
-                wsService.current.send({
+                wsService.send({
                     type: 'colorNamesEnd'
                 })
             },
             'endAndExit': () => {
-                resetDisplay()
+               renderRoomMessageData('Please exit the room')
+               resetSpanColors()
+               setTimeout(() => {
+                  resetDisplay()
+               }, 5000)
             },
             'facilitySessionExpired': () => {
                 renderRoomMessageData(data.message)
@@ -63,18 +58,23 @@ function startListeningToSocket() {
                 playAudio(data['cache-audio-file-and-play'])
             },
             'newLevelStarts': () => {
-                renderGameStatesData(data)
+               resetSpanColors()
+               renderGameStatesData(data)
             },
             'offerNextLevel': () => {
-                renderRoomMessageData(data.message)
+               renderRoomMessageData(data.message)
             },
             'offerSameLevel': () => {
-                renderRoomMessageData(data.message)
+               renderRoomMessageData(data.message)
             },
             'playerSuccess': () => {
                 playAudio(data['cache-audio-file-and-play'])
+                setColorToSpan(data.color)
             },
-            'playerFailed': () => console.log('playerFailed'),
+            'playerFailed': () => {
+               setColorToSpan(data.color)
+               playAudio(data['cache-audio-file-and-play'])
+            },
             'roomDisabled': () => renderRoomMessageData(data.message),
             'storedGameStates': () => {
                 const states = data.data
@@ -83,10 +83,6 @@ function startListeningToSocket() {
             'timeIsUp': () => renderRoomMessageData(data.message),
             'updateCountdown': () => {
                 renderCountdownData(data.countdown)
-            },
-            'updateLifes': () => {
-                renderLifesData(data.lifes)
-                playAudio(data['cache-audio-file-and-play'])
             },
             'updateLight': () => handleUpdateLight(data),
             'updatePreparationInterval': () => {
@@ -99,24 +95,24 @@ function startListeningToSocket() {
    
          if (!messageHandlers[data.type]) {console.warn(`No handler for this message type ${data.type}`)}
    
-          messageHandlers[data.type]()
+         messageHandlers[data.type]()
     }
 
-    function initWebSocket() {
-    if (!wsService) {
-        wsService = new WebSocketService(WS_URL, CLIENT)
-        wsService.connect()
-    }
+   function initWebSocket() {
+      if (!wsService) {
+         wsService = new WebSocketService(WS_URL, CLIENT)
+         wsService.connect()
+      }
 
-    wsService.addListener(handleWebSocketMessage)
+      wsService.addListener(handleWebSocketMessage)
     }
 
     function cleanupWebSocket() {
-    if (wsService) {
-        wsService.removeListener(handleWebSocketMessage)
-        wsService.close()
-        wsService = null
-    }
+      if (wsService) {
+         wsService.removeListener(handleWebSocketMessage)
+         wsService.close()
+         wsService = null
+      }
     }
 
     window.addEventListener('load', initWebSocket)
@@ -125,10 +121,8 @@ function startListeningToSocket() {
 
 // DOM renders
 function renderGameStatesData(data) {
-    renderLifesData(data.lifes)
     countdownElement.textContent = formatTime(data.countdown)
     roomInfoElement.textContent = `Room: ${data.roomType} > Rule: ${data.rule} > Level: ${data.level}`
-    bookRoomUntilElement.textContent = formatDate(data.bookRoomUntil)
     teamNameElement.textContent = data.team?.name
 
     roomPlayersElement.innerHTML = ''
@@ -136,6 +130,7 @@ function renderGameStatesData(data) {
     data.players.forEach((player) => {
         const li = document.createElement('li')
         li.classList.add('list-item')
+        li.classList.add('mb-1')
 
         // Create an image element for the avatar
         const avatarImg = document.createElement('img');
@@ -177,79 +172,67 @@ function renderGameStatesData(data) {
 
         roomPlayersElement.offsetHeight; // Force reflow
     })
+
+            // Handle color sequence visibility
+   if (data.roomType === 'basketball') {
+      colorSequenceElement.classList.remove('invisible');
+      colorSequenceElement.classList.add('visible');
+   } else {
+      colorSequenceElement.classList.remove('visible');
+      colorSequenceElement.classList.add('invisible');
+   }
 }
 
 function renderRoomMessageData(data) {
-    statusElement.textContent = data
+    roomMessageElement.textContent = data
 
     setTimeout(() => {
-        statusElement.textContent = ''
-    }, 2000)
+        roomMessageElement.textContent = ''
+    }, 5000)
 }
 
 function renderCountdownData(countdown) {
-    countdownElement.textContent = formatTime(countdown)
-}
-
-function renderLifesData(lifes) {
-    const totalHearts = 5
-
-    // Clear the container only if it's empty (first render)
-    if (lifesContainerElement.children.length === 0) {
-        for (let i = 0; i < totalHearts; i++) {
-            const heart = document.createElement('div');
-            heart.classList.add('heart-slot'); // uniform container class
-
-            const icon = document.createElement('div');
-            icon.classList.add('heart');
-            icon.innerHTML = heartSVG;
-
-            heart.appendChild(icon);
-            lifesContainerElement.appendChild(heart);
-        }
-    }
-
-    // Loop through each slot and update its contents
-    const slots = lifesContainerElement.querySelectorAll('.heart-slot');
-    slots.forEach((slot, index) => {
-        const current = slot.firstChild;
-        if (index < lifes) {
-            // Should be a full heart
-            if (!current.classList.contains('heart')) {
-                const heart = document.createElement('div');
-                heart.classList.add('heart');
-                heart.innerHTML = heartSVG;
-
-                // Replace heartbreak with heart
-                slot.replaceChild(heart, current);
-            }
-        } else {
-            // Should be a heartbreak
-            if (!current.classList.contains('heart-broken')) {
-                const heartbreak = document.createElement('div');
-                heartbreak.classList.add('heart-broken');
-                heartbreak.innerHTML = heartbreakSVG;
-
-                // Add animation to current (heart loss)
-                current.classList.add('heart-lost');
-
-                setTimeout(() => {
-                    if (slot.contains(current)) {
-                        slot.replaceChild(heartbreak, current);
-                    }
-                }, 500); // match animation duration
-            }
-        }
-    });
+   countdownElement.textContent = formatTime(countdown)
 }
 
 function resetDisplay() {
-    lifesElement.textContent = '5'
-    countdownElement.textContent = '00:00'
-    roomInfoElement.textContent = ''
-    bookRoomUntilElement.textContent = ''
-    teamNameElement.textContent = ''
-    roomPlayersElement.innerHTML = ''
+   countdownElement.textContent = ''
+   roomInfoElement.textContent = ''
+   teamNameElement.textContent = ''
+   roomPlayersElement.innerHTML = ''
+   roomMessageElement.textContent = ''
+   colorSequenceElement.classList.remove('visible');
+   colorSequenceElement.classList.add('invisible');
+}
+
+function setColorToSpan(color) {
+   const spans = colorSequenceElement.querySelectorAll('span');
+
+   if (spans.length > 0 && color) {
+       const [r, g, b] = color;
+
+       console.log('r', r, 'g', g, 'b', b);
+
+       // Find the first empty span (one without a background color)
+       const emptySpan = Array.from(spans).find(span => !span.style.backgroundColor);
+
+       if (emptySpan) {
+           // Set the color for the first empty span
+           emptySpan.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+       } else {
+           // If all spans are filled, reset them and use the first span
+           resetSpanColors();
+           spans[0].style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+       }
+   }
+}
+
+function resetSpanColors() {
+   const spans = colorSequenceElement.querySelectorAll('span');
+   spans.forEach(span => {
+       span.style.backgroundColor = '';  // Clear the background color
+   });
+   currentSpanIndex = 0; // Reset the index if you want to start from the first span
 }
 
 startListeningToSocket()

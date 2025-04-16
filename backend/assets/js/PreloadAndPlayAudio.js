@@ -7,7 +7,7 @@ const preloadAudio = async (audioName) => {
     const response = await fetch(`/api/game-audio/${audioName}`);
 
     if (response.status === 200) {
-      const data = response.data;
+      const data = await response.json();
       const audio = new Audio(data.url);
 
       audio.preload = 'auto';

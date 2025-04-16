@@ -1,21 +1,15 @@
 import express from 'express'
 import cors from 'cors'
 import path from 'path'
-import fs from 'fs'
+import axios from 'axios'
 import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
-import os from 'os'
 
 import Socket from '../classes/Socket.js'
 import GameManager from './GameManager.js'
 import Light from './Light.js'
 import { handleUncaughtException } from '../utils/utils.js'
-
-import startGameSessionRoute from '../routes/startGameSession.js'
-import gamesListRoute from '../routes/gamesList.js'
-import toggleRoomRoute from '../routes/toggleRoom.js'
-import gameAudioRoute from '../routes/gameAudio.js'
-import axios from 'axios'
+import { getAllAvailableGameRules } from '../utils/getAllAvailableGameRules.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -27,7 +21,7 @@ process.on('uncaughtException', handleUncaughtException)
 dotenv.config()
 
 export default class Room {
-    constructor() {
+    constructor(roomType) {
       this.socket = new Socket(8082)
       this.gameManager = new GameManager()
       this.currentGame = null // Track current game
@@ -47,41 +41,28 @@ export default class Room {
       this.sendLightsInstructionsRequestPending = false
 
       this.created_at = Date.now()
+      this.type = roomType
 
-      this.config = {}
-      this.type = 'MonkeyRun'
-      this.numberOfLevels = 0
+      this.availableGameRules
+      this.roomTypeSpecifics
 
       this.init()
     }
 
     async init() {
-        try {
-            // Load game config
-            const configData = await fs.promises.readFile(CONFIG_PATH, 'utf8')
-            this.config = JSON.parse(configData)
-            this.type = this.config.roomType || 'MonkeyRun'
-            this.numberOfLevels = this.config.gameLevels.length
-            console.log(`Room initialized with type: ${this.type} \n`)
-        } catch (error) {
-            console.error(`Error loading config: ${error.message}`)
-            this.config = {}
-            this.type = 'MonkeyRun'
-            this.numberOfLevels = 0
-            throw new Error(`Failed to load configuration from ${CONFIG_PATH}`)
-        }
+      this.roomTypeSpecifics = await this.loadRoomTypeSpecifics()
+      this.availableGameRules = await getAllAvailableGameRules(this.type)
 
-        await this.prepareLights()
-        console.log(`Total lights prepared: ${this.lights.length}`)
-        await this.measure()
-        this.startServer()
-        this.setupWebSocketListeners()
-        
-        try {
-            await this.notifyFacility()
-        } catch (error) {
-            console.error('Continuing without notifying facility')
-        }
+      this.prepareLights()
+      this.measure()
+      this.startServer()
+      this.setupWebSocketListeners()
+      
+      try {
+         await this.notifyFacility()
+      } catch (error) {
+         console.error('Continuing without notifying facility')
+      }
     }
 
     setupWebSocketListeners() {
@@ -100,35 +81,29 @@ export default class Room {
       })
     }
 
-    async prepareLights() {
-        try {
-            if (!this.config.prepareLights) {
-                console.warn("Missing 'prepareLights' path in game-config.json")
-            }
+    async loadRoomTypeSpecifics() {
+      try {
+         const modulePath = `../roomTypes/${this.type}/roomTypeSpecifics.mjs`;
 
-            // Load the lights config file
-            const LIGHTS_CONFIG_PATH = path.join(__dirname, '../config', path.basename(this.config.prepareLights))
-            const lightsData = await fs.promises.readFile(LIGHTS_CONFIG_PATH, 'utf8')
-            const configurations = JSON.parse(lightsData)
-        
-            // Get the corresponding configuration for the given type
-            const matrices = configurations[this.type] || []
+         console.log('loading '+modulePath+'...')
+         const roomTypeModule = await import(modulePath);
+         return roomTypeModule;
+      } catch (error) {
+         console.error(`Failed to load roomTypeSpecifics for ${this.type}`, error);
+         throw error;
+      }
+    }
 
-            if (matrices.length === 0) {
-                console.warn(`No light configurations for this room: ${this.type}`)
-            }
-        
-            // Apply the configurations
-            matrices.forEach(({ x, y, shape, type, w, h, cols, rows, spacingX, spacingY, label, active }) => {
-                this.addMatrix(x, y, shape, type, w, h, cols, rows, spacingX, spacingY, label, active)
-            })
+    async prepareLights(){      
+      const lightConfigs = this.roomTypeSpecifics.getPhysicalElements('lights')
+      const lightPhysicalElements = lightConfigs
 
-            // console.log(`Loaded ${matrices.length} light configurations for type: ${this.type}`)
-        } catch (error) {
-            console.error(`Error loading lights config: ${error.message}`)
-            throw new Error(`Error loading lights config: ${error.message}`)
-        }
-    }    
+      lightPhysicalElements.forEach((lightConfig) => {
+         const [matrixPosX, matrixPosY, elementsShape, elementsType, matrixWidth, matrixHeight, tileWidth, tileHeight, marginX, marginY, lightGroup, isAffectedByAnimation] = lightConfig;
+      
+         this.addMatrix(matrixPosX, matrixPosY, elementsShape, elementsType, matrixWidth, matrixHeight, tileWidth, tileHeight, marginX, marginY, lightGroup, isAffectedByAnimation);
+      })      
+    }  
 
     addMatrix(matrixPosX,matrixPosY,elementsShape,elementsType,matrixWidth,matrixHeight,tileWidth,tileHeight,marginX,marginY,lightGroup,isAffectedByAnimation){
         let numberOfTilesX = Math.floor(matrixWidth / (tileWidth+marginX))
@@ -137,13 +112,13 @@ export default class Room {
             for (let j = 0; j < numberOfTilesY; j++) {
 
                 let light = new Light(this.lightCounter,matrixPosX+(i*(tileWidth+marginX)),matrixPosY+(j*(tileHeight+marginY)), elementsShape, elementsType, tileWidth, tileHeight,isAffectedByAnimation)
+                
                 if (!(lightGroup in this.lightGroups)){
                     this.lightGroups[lightGroup] = []
                 }
                 this.lightGroups[lightGroup].push(light)
                 this.lights.push(light)
                 this.lightCounter++
-
             }
         }
     }
@@ -189,10 +164,81 @@ export default class Room {
             }
             next()
         })
-        this.server.use('/api/start-game-session', startGameSessionRoute)
-        this.server.use('/api/games-list', gamesListRoute)
-        this.server.use('/api/toggle-room', toggleRoomRoute)
-        this.server.use('/api/game-audio', gameAudioRoute)
+
+        this.server.use('/api/start-game-session', async (req, res) => {
+            try {
+               const { team, players, room, book_room_until, is_collaborative } = req.body
+   
+               if (!room || !players) {
+                  return res.status(400).json({ error: 'Missing data'})
+               }
+      
+               const [roomType, rule, level] = room.split(',')
+      
+               if (!roomType || !rule || !level || !players.length) {
+                  return res.status(400).json({ error: 'Invalid room format or missing players' })
+               }
+      
+               // Check if a game session is already running
+               if (this.currentGameSession && this.currentGameSession.status === 'running') {
+                  return res.status(403).json({ error: 'gameroom-busy' })
+               }
+
+               res.status(200).json({message: 'Session received'})
+      
+               // Start the session
+               this.startGame(roomType, rule, level, players, team, book_room_until, is_collaborative)
+                  .catch(err => {
+                     throw new Error("Error starting game.", err)
+                  })
+            } catch (error) {
+               console.error('Error in start-game-session:', err);
+               return res.status(500).json({ error: 'Internal server error' });
+            }
+        })
+
+        this.server.use('/api/toggle-room', (req, res) => {
+            const { status } = req.body
+
+            console.log('Received toggle request:', status)
+   
+            if (typeof status === 'boolean') {
+               this.enabled = status
+   
+               // Stop running games if room is disabled
+               if (!this.enabled && this.currentGame) {
+                  this.currentGame.stop()
+                  this.currentGame = null
+                  this.currentGameSession = null
+                  this.isFree = true
+               }
+               
+               res.json({ enabled: this.enabled })
+            } else {
+               res.status(400).json({ error: 'Invalid status value'})
+            }
+        })
+        this.server.use('/api/game-audio/:audioName', (req, res) => {
+            const audio = {
+               'levelFailed': 'audio/703542__yoshicakes77__dead.ogg',
+               'levelCompleted': 'audio/703543__yoshicakes77__win.ogg',
+               'playerScored': 'audio/703541__yoshicakes77__coin.ogg',
+               'playerLoseLife': 'audio/253174__suntemple__retro-you-lose-sfx.wav',
+               'gameOver': 'audio/76376__deleted_user_877451__game_over.wav',
+               '321go': 'audio/474474__bnewton103__robotic-countdown.wav',
+               'red': 'audio/196551__margo_heston__red-f.wav',
+               'green': 'audio/196520__margo_heston__green-f.wav',
+               'blue': 'audio/196535__margo_heston__blue-f.wav',
+               'yellow': 'audio/196531__margo_heston__yellow-f.wav',
+               'purple': 'audio/196547__margo_heston__purple-f.wav'
+         }
+         const audioName = req.params.audioName
+      
+         if (!audio[audioName]) return res.status(404).json({error: 'Audio not found'})
+      
+            res.json({ url: audio[audioName] })
+       })
+
         this.server.get('/api/health', async(req, res) => { res.status(200).json({ status: 'ok' }) })  
 
         // Frontend routes
@@ -335,7 +381,7 @@ export default class Room {
             available: this.isFree, 
             enabled: this.enabled,
             room: this.type,
-            roomConfig: this.config
+            rules: this.availableGameRules
          })
          if (response.status === 200) {
             // console.log('Facility notified:', response.data)

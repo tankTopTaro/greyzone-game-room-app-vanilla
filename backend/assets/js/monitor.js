@@ -7,6 +7,11 @@ document.title = `GRA | Monitor`
 const WS_URL = `ws://${window.location.hostname}:8082`
 const CLIENT = 'monitor'
 
+const GFA_CONFIG = {
+   HOSTNAME: '192.168.254.100',
+   PORT: 3001
+}
+
 let wsService = null
 
 let room = undefined
@@ -18,7 +23,6 @@ let yellowDots = []
 let clearDotsInterval = undefined
 
 const countdownElement = document.getElementById('countdown')
-const lifesElement = document.getElementById('lifes')
 const roomInfoElement = document.getElementById('roomInfo')
 const statusElement = document.getElementById('status')
 const bookRoomUntilElement = document.getElementById('bookRoomUntil')
@@ -35,20 +39,24 @@ function startListeningToSocket() {
             //'bookRoomCountdown': () => console.log(data.remainingTime),
             'bookRoomExpired': () => {
                 renderStatusData(data.message)
+                resetDisplay()
+                PrepareRoom()
             },
             'bookRoomWarning': () => () => {
                 renderStatusData(data.message)
             },
             'colorNames': () => {
-                playAudio(data['cache-audio-file-and-play'])
+                // playAudio(data['cache-audio-file-and-play'])
             },
             'colorNamesEnd': () => {
-                wsService.current.send({
+                wsService.send({
                     type: 'colorNamesEnd'
                 })
             },
             'endAndExit': () => {
-                resetDisplay()
+               PrepareRoom()
+               drawRoom()
+               resetDisplay()
             },
             'facilitySessionExpired': () => {
                 renderStatusData(data.message)
@@ -56,23 +64,26 @@ function startListeningToSocket() {
             'isUpcomingGameSession': () => console.log(data),
             'levelCompleted': () => {
                 renderStatusData(data.message)
-                playAudio(data['cache-audio-file-and-play'])
+                // playAudio(data['cache-audio-file-and-play'])
             },
             'levelFailed': () => {
                 renderStatusData(data.message)
-                playAudio(data['cache-audio-file-and-play'])
+                // playAudio(data['cache-audio-file-and-play'])
             },
             'newLevelStarts': () => {
-                renderGameStatesData(data)
+               resetDisplay()
+               renderGameStatesData(data)
             },
             'offerNextLevel': () => {
-                renderStatusData(data.message)
+               PrepareRoom()
+               renderStatusData(data.message)
             },
             'offerSameLevel': () => {
-                renderStatusData(data.message)
+               PrepareRoom()
+               renderStatusData(data.message)
             },
             'playerSuccess': () => {
-                playAudio(data['cache-audio-file-and-play'])
+                // playAudio(data['cache-audio-file-and-play'])
             },
             'playerFailed': () => console.log('playerFailed'),
             'roomDisabled': () => renderStatusData(data.message),
@@ -84,16 +95,15 @@ function startListeningToSocket() {
             'updateCountdown': () => {
                 renderCountdownData(data.countdown)
             },
-            'updateLifes': () => {
-                renderLifesData(data.lifes)
-                playAudio(data['cache-audio-file-and-play'])
+            'updateLight': () => {
+               console.log(data)
+               handleUpdateLight(data)
             },
-            'updateLight': () => handleUpdateLight(data),
             'updatePreparationInterval': () => {
                 renderCountdownData(data.countdown)
-                if (data['cache-audio-file']) preloadAudio(data['cache-audio-file'])
+                // if (data['cache-audio-file']) preloadAudio(data['cache-audio-file'])
 
-                if (data['play-audio-file']) playAudio(data['play-audio-file'])
+                // if (data['play-audio-file']) playAudio(data['play-audio-file'])
             }
          }
    
@@ -112,14 +122,23 @@ function startListeningToSocket() {
     }
 
     function cleanupWebSocket() {
-    if (wsService) {
-        wsService.removeListener(handleWebSocketMessage)
-        wsService.close()
-        wsService = null
-    }
+      if (wsService) {
+         wsService.removeListener(handleWebSocketMessage)
+         wsService.close()
+         wsService = null
+         PrepareRoom()
+      }
     }
 
+    window.addEventListener('focus',() => {
+      if (wsService && !wsService.isConnected()) {
+         console.log('WebSocket closed on focus. Re-initializing...')
+         PrepareRoom()
+      }
+    })
+
     window.addEventListener('load', initWebSocket)
+
     window.addEventListener('beforeunload', cleanupWebSocket)
 }
 
@@ -127,11 +146,13 @@ function startListeningToSocket() {
 async function downloadRoom() {
     const response = await fetch('/get/roomData')
     const json = await response.json()
+    console.log(json)
     room = json.room
     lights = json.lights
 }
 
 async function drawRoom() {
+   console.log('drawing room...')
     canvas.width = window.innerWidth
     scale = canvas.width / room.width
     canvas.height = room.height * scale
@@ -149,6 +170,7 @@ async function drawRoom() {
 }
 
 function drawLight(light) {
+   console.log('drawing light...')
     if(light.type === 'ledSwitch'){
         ctx.fillStyle = 'rgb('+light.color[0]+', '+light.color[1]+', '+light.color[2]+')'
         ctx.fillRect(
@@ -251,7 +273,6 @@ function clearAndDrawRoom() {
     });
 
     yellowDots = [];
-    drawRoom()
 }
 
 clearDotsInterval = setInterval(clearAndDrawRoom, 4000)
@@ -308,21 +329,20 @@ function handleCanvasClick(event) {
 
 // DOM renders
 function renderGameStatesData(data) {
-    lifesElement.textContent = data.lifes
     countdownElement.textContent = formatTime(data.countdown)
     roomInfoElement.textContent = `Room: ${data.roomType} > Rule: ${data.rule} > Level: ${data.level}`
-    bookRoomUntilElement.textContent = formatDate(data.bookRoomUntil)
+    bookRoomUntilElement.textContent = formatDate(data.book_room_until)
     teamNameElement.textContent = data.team?.name
-
     roomPlayersElement.innerHTML = ''
 
     data.players.forEach((player) => {
         const li = document.createElement('li')
         li.classList.add('list-item')
+        li.classList.add('mb-1')
 
         // Create an image element for the avatar
         const avatarImg = document.createElement('img');
-        avatarImg.src = `http://localhost:3001/api/images/players/${player.id}.jpg` || 'https://placehold.co/40x40?text=No+Image';
+        avatarImg.src = `http://${GFA_CONFIG.HOSTNAME}:${GFA_CONFIG.PORT}/api/images/players/${player.id}.jpg` || 'https://placehold.co/40x40?text=No+Image';
         avatarImg.alt = `${player.nick_name || 'Unknown'}'s avatar`;
         avatarImg.classList.add('avatar');
 
@@ -335,17 +355,6 @@ function renderGameStatesData(data) {
         // Create a span for the player's details
         const playerDetails = document.createElement('span');
         playerDetails.textContent = `${player.nick_name || 'Unknown'}`;
-
-        // Create a span for the player's score
-        /* const playerScore = document.createElement('span');
-        const storedPlayerScored = JSON.parse(localStorage.getItem('playerScored'));
-
-        if(storedPlayerScored){
-            playerScore.textContent = `Score: ${storedPlayerScored.playerScore}`
-        }
-
-        playerScore.textContent = `Score: ${player.score}`; */
-        
 
         // Append player details and score to the player info container
         playerInfo.appendChild(playerDetails);
@@ -367,19 +376,14 @@ function renderStatusData(data) {
 
     setTimeout(() => {
         statusElement.textContent = ''
-    }, 2000)
+    }, 5000)
 }
 
 function renderCountdownData(countdown) {
     countdownElement.textContent = formatTime(countdown)
 }
 
-function renderLifesData(lifes) {
-    lifesElement.textContent = lifes
-}
-
 function resetDisplay() {
-    lifesElement.textContent = '5'
     countdownElement.textContent = '00:00'
     roomInfoElement.textContent = ''
     bookRoomUntilElement.textContent = ''
@@ -393,5 +397,4 @@ canvas.addEventListener('click', handleCanvasClick)
 
 lightsAreDrawn = false
 startListeningToSocket()
-
-if (!lightsAreDrawn) PrepareRoom()
+PrepareRoom()

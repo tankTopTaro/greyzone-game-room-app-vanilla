@@ -39,7 +39,6 @@ export default class Game {
       this.createdAt = Date.now()
       
       this.timeToPrepare = timeToPrepare ?? 15
-      console.log('timeToPrepare:', timeToPrepare)
       this.preparationInterval = undefined
       this.preparationIntervalStartedAt = undefined
 
@@ -51,7 +50,10 @@ export default class Game {
       this.currentLevelOffer = ''
       this.log = []
       this.isWon = false
-      this.score = 0 
+
+      this.gameRuleSpecifics
+
+      this.penaltyTimestamps = []
     }
 
     async init() {
@@ -96,14 +98,12 @@ export default class Game {
         this.shapes = []
         this.log = []
         this.isWon = false
-        this.score = 0
         this.lastLevelCreatedAt = Date.now()
         this.room.lights.forEach(light => {
             light.color = black
             light.onClick = 'ignore'
         })
         this.room.sendLightsInstructionsIfIdle()
-        this.clearGameStates()
     }
 
     prepareAndGreet() {
@@ -131,9 +131,7 @@ export default class Game {
     async prepare() {
         return new Promise((resolve, reject) => {
             console.log('preparation starts...')
-            this.lastLifeLostAt = 0
             this.countdown = this.timeForLevel
-            this.lifes = 5
             this.prepTime = this.timeToPrepare
 
             this.saveGameStates()
@@ -143,11 +141,10 @@ export default class Game {
                rule: this.rule,
                level: this.level,
                countdown: this.countdown,
-               lifes: this.lifes,
                roomType: this.room.type,
                players: this.players,
                team: this.team,
-               bookRoomUntil: this.book_room_until
+               book_room_until: this.book_room_until
             }
 
             this.room.socket.broadcastMessage('monitor', message)
@@ -166,7 +163,8 @@ export default class Game {
 
                   try {
                      clearInterval(this.animationMetronome);
-                     await this.prepareShapes();
+                     this.gameRuleSpecifics = await this.loadGameRuleSpecifics()
+                     this.prepareShapes();
                      console.log('preparation ends...');
                      this.status = 'prepared';
                      resolve(true); // Now resolve after preparation is complete
@@ -179,47 +177,41 @@ export default class Game {
         })
     }
 
-    async prepareShapes() {
-        try {
-            const SHAPES_CONFIG_PATH = path.join(__dirname, '../config', path.basename(this.room.config.prepareShapes))
+    async loadGameRuleSpecifics() {
+      try {
+         const modulePath = `../roomTypes/${this.room.type}/gameRules/${this.rule}.mjs`;
+         console.log('loading '+modulePath+'...')
+         const gameRuleModule = await import(modulePath);
+         return gameRuleModule;
+      } catch (error) {
+         console.error(`Failed to load gameRuleSpecifics for ${this.rule}`, error);
+         throw error;
+      }
+    }
 
-            const shapesData = await fs.promises.readFile(SHAPES_CONFIG_PATH, 'utf8')
-            const configurations = JSON.parse(shapesData)
+    async prepareShapes(){    // handle the animations for the lights
+      try {
+         const levelConfig = this.gameRuleSpecifics.getShapes(this.level)
+         levelConfig.shapes.forEach((shape, index) => {
+            let pathDotsToUse = levelConfig.pathDots
 
-            // console.log(`Level ${this.level} Config: ${configurations[this.level]}`)
-
-            const levelConfig = configurations[this.level]
-
-            if (!levelConfig) {
-               const msg = `Invalid level: ${this.level}`
-               console.warn(msg)
-               this.logEvent('invalid_level', msg)
+            switch(this.level) {
+                case 1:
+                case 2:
+                    pathDotsToUse = index === 1 && levelConfig.extraPathDots.length > 0 ? levelConfig.extraPathDots : levelConfig.pathDots
+                    break
+                case 3:
+                    pathDotsToUse = index === 1 && levelConfig.safeDots.length > 0 ? levelConfig.safeDots : levelConfig.pathDots
+                    break
+                default:
+                    break
             }
 
-            // create shapes
-            levelConfig.shapes.forEach((shape, index) => {
-                let pathDotsToUse = levelConfig.pathDots
-
-                switch(this.level) {
-                    case 1:
-                    case 2:
-                        pathDotsToUse = index === 1 && levelConfig.extraPathDots.length > 0 ? levelConfig.extraPathDots : levelConfig.pathDots
-                        break
-                    case 3:
-                        pathDotsToUse = index === 1 && levelConfig.safeDots.length > 0 ? levelConfig.safeDots : levelConfig.pathDots
-                        break
-                    default:
-                        break
-                }
-
-                this.shapes.push(new Shape(shape.x, shape.y, 'rectangle', shape.width, shape.height, shape.color, shape.action, pathDotsToUse, shape.speed, 'mainFloor'))
-            })
-            
-            // console.log(`Loaded shapes configurations for type: ${this.room.type}`)
-        } catch (error) {
-            console.error(`Error loading shapes config: ${error.message}`)
-            this.logEvent('load_shapes_failed', error.message)
-        }
+            this.shapes.push(new Shape(shape.x, shape.y, 'rectangle', shape.width, shape.height, shape.color, shape.action, pathDotsToUse, shape.speed, 'mainFloor'))
+        })
+      } catch (error) {
+         console.error(`Error loading shapes config: ${error.message}`)
+      }
     }
 
     handleLightClickAction(lightId, whileColorWas) {
@@ -315,14 +307,12 @@ export default class Game {
     }
 
     async levelCompleted() {
+      console.log('Level Completed')
       clearInterval(this.animationMetronome)
 
       // Calculate the time taken to complete the level
       const timeTaken = Math.round((Date.now() - this.lastLevelStartedAt) / 1000)
       const levelKey = `${this.room.type} > ${this.rule} > L${this.level}`
-
-      // Calculate the score
-      this.score = Math.max(1000 - (timeTaken * 2), 100)
 
       // Update team and player games_history
       this.updateGamesHistory(this.team, levelKey, timeTaken, true)
@@ -347,14 +337,12 @@ export default class Game {
     }
 
     async levelFailed() {
+      console.log('Level Failed')
       clearInterval(this.animationMetronome)
 
       // Calculate the time taken to complete the level
       const timeTaken = Math.round((Date.now() - this.lastLevelStartedAt) / 1000)
       const levelKey = `${this.room.type} > ${this.rule} > L${this.level}`
-
-      // Calculate the score
-      this.score = Math.max(1000 - (timeTaken * 2), 100)
 
       // Update team and player games_history
       this.updateGamesHistory(this.team, levelKey, timeTaken, false)
@@ -391,11 +379,12 @@ export default class Game {
 
     offerNextLevel() {
       this.isWaitingForChoiceButton = true
+      let isLastLevel = false
 
-      // Check if it's the last level
-      const currentLevel = parseInt(this.level, 10)
-      const isLastLevel = currentLevel >= this.room.numberOfLevels
-       
+      if (this.room.type === 'doubleGrid' && this.level === 3) {
+         isLastLevel = true
+      }
+
       const buttonColor = isLastLevel ? yellow : green
       const message = isLastLevel 
       ? {
@@ -451,9 +440,10 @@ export default class Game {
       this.isChoiceButtonPressed = false
       this.room.isFree = false
 
-      // Check if it's the last level
-      const currentLevel = parseInt(this.level, 10)
-      const isLastLevel = currentLevel >= this.room.numberOfLevels
+      let isLastLevel = false
+      if (this.room.type === 'doubleGrid' && this.level === 3) {
+         isLastLevel = true
+      }
 
       if (isLastLevel) {
          this.gameLogEvent( this.team, 'last_level_reached', `Team has reached the last level: Level ${this.level}`)
@@ -526,18 +516,20 @@ export default class Game {
     updateCountdown() {
         if (this.status === undefined) return
 
-        let timeLeft = Math.round((this.lastLevelStartedAt + (this.timeForLevel * 1000) - Date.now()) / 1000)
+         const penalties = this.penaltyTimestamps ? this.penaltyTimestamps.length : 0
+         const baseTimeLeft = Math.round((this.lastLevelStartedAt + (this.timeForLevel * 1000) - Date.now()) / 1000)
+         const timeLeft = baseTimeLeft - (penalties * 5)
 
         if (timeLeft !== this.countdown) {
-            if (timeLeft >= 0) {
+            if (timeLeft >= 0) {               
                const message = {
-               type: 'updateCountdown',
-               countdown: this.countdown
+                  type: 'updateCountdown',
+                  countdown: this.countdown
                }
-
+   
                this.room.socket.broadcastMessage('monitor', message)
                this.room.socket.broadcastMessage('room-screen', message)
-               
+
                this.countdown = timeLeft
                this.updateGameStates()
             } else {
@@ -551,38 +543,14 @@ export default class Game {
 
                this.levelFailed()
                this.gameLogEvent( this.team, 'time_is_up', 'Team ran out of time')
-         this.players.forEach(player => this.gameLogEvent(player, 'time_is_up', 'Player ran out of time'))
+               this.players.forEach(player => this.gameLogEvent(player, 'time_is_up', 'Player ran out of time'))
             }
         }
     }
 
-    removeLife() {
-        if(this.lastLifeLostAt < (Date.now() - 2000)){
-            this.lastLifeLostAt = Date.now()
-
-            if(this.lifes > 0) {
-                this.lifes--
-                this.updateLifes()
-                this.updateGameStates()
-            }
-        }
-    }
-
-    updateLifes() {
-      const message = {
-         type: 'updateLifes',
-         lifes: this.lifes,
-         'cache-audio-file-and-play': 'playerLoseLife'
-      }
-
-      this.room.socket.broadcastMessage('monitor', message)
-      this.room.socket.broadcastMessage('room-screen', message)
-
-      if (this.lifes === 0) {
-         this.levelFailed()
-         this.gameLogEvent( this.team, 'no_more_lifes', 'Team ran out of lifes')
-         this.players.forEach(player => this.gameLogEvent(player, 'no_more_lifes', 'Player ran out of lifes'))
-      }
+    loseTime() {
+      this.penaltyTimestamps.push(Date.now())
+      this.updateCountdown()
     }
 
     start() {
@@ -625,10 +593,11 @@ export default class Game {
       console.log('Game Ended...')
       this.room.socket.broadcastMessage('monitor', { type: 'endAndExit' })
       this.room.socket.broadcastMessage('room-screen', { type: 'endAndExit' })
-      this.clearGameStates()
       this.reset()
+      this.score = 0
       this.room.isFree = true
       this.room.currentGameSession = undefined
+      this.room.currentGame = undefined
     }
 
     // Session
@@ -676,19 +645,6 @@ export default class Game {
 
             warningSent = true
          }
-
-         // Send the countdown to the frontend for display
-         const remainingMinutes = Math.floor(timeLeft / 60000);
-         const remainingSeconds = Math.floor((timeLeft % 60000) / 1000);
-         
-         const countdownMessage = {
-            type: 'bookRoomCountdown',
-            remainingTime: `${remainingMinutes}:${remainingSeconds.toString().padStart(2, '0')}`,
-         };
-
-         this.room.socket.broadcastMessage('monitor', countdownMessage);
-         this.room.socket.broadcastMessage('room-screen', countdownMessage);
-         
       }, 1000)  
     }
 
@@ -818,7 +774,6 @@ export default class Game {
       gameStates.countdown = this.countdown
       gameStates.lifes = this.lifes
       gameStates.level = this.level
-      gameStates.score = this.score
 
       fs.writeFileSync(GAME_STATES_PATH, JSON.stringify(gameStates, null, 2), 'utf8')
     }

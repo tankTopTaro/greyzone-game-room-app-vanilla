@@ -1,8 +1,3 @@
-import roomInstance from "./utils/roomInstance.js"
-import startGameSessionController from "./controllers/startGameSessionController.js"
-import gamesListController from "./controllers/gamesListController.js"
-import toggleRoomController from "./controllers/toggleRoomController.js"
+import Room from './classes/Room.js'
 
-gamesListController.setRoomInstance(roomInstance)
-startGameSessionController.setRoomInstance(roomInstance)
-toggleRoomController.setRoomInstance(roomInstance)
+const room = new Room('basketball')
