@@ -20,7 +20,7 @@ const green = hsvToRgb([85,255,255])
 const red = hsvToRgb([0,255,255])
 
 export default class Game {
-    constructor(roomInstance, rule, level, players = [], team, book_room_until, is_collaborative = true, timeForLevel = 60, timeToPrepare) {
+    constructor(roomInstance, rule, level, players = [], team, book_room_until, is_collaborative = true, timeForLevel = 120, timeToPrepare, parent_gs_id) {
       this.players = players
       this.rule = rule
       this.level = level
@@ -54,6 +54,8 @@ export default class Game {
       this.gameRuleSpecifics
 
       this.penaltyTimestamps = []
+
+      this.parent_gs_id = parent_gs_id || null
     }
 
     async init() {
@@ -411,6 +413,10 @@ export default class Game {
       this.gameLogEvent( this.team, 'start_same_level', `Team replay level ${this.level}`)
       this.players.forEach(player => this.gameLogEvent(player, 'start_same_level', `player replay level ${this.level}`))
 
+      const formatName = name => name.trim().replace(/\s+/g, '_')
+      const baseName = formatName(this.team?.name || this.players[0]?.nick_name || 'anon')
+      const parentId = `${baseName}_${this.room.type}_${this.rule}_L${this.level}_lose`
+
       // Create a new session
       this.room.currentGameSession = await this.room.gameManager.loadGame(
          this.room,
@@ -421,7 +427,8 @@ export default class Game {
          this.team,
          this.book_room_until,
          this.is_collaborative,
-         5 // timeToPrepare, from 15 to 5
+         5, // timeToPrepare, from 15 to 5
+         parentId
       )
 
       if (!this.room.currentGameSession) {
@@ -451,6 +458,10 @@ export default class Game {
          return 
       }
 
+      const formatName = name => name.trim().replace(/\s+/g, '_')
+      const baseName = formatName(this.team?.name || this.players[0]?.nick_name || 'anon')
+      const parentId = `${baseName}_${this.room.type}_${this.rule}_L${this.level}_win`
+
       // Properly assign the new game session
       this.room.currentGameSession = await this.room.gameManager.loadGame(
          this.room,
@@ -461,7 +472,8 @@ export default class Game {
          this.team,
          this.book_room_until,
          this.is_collaborative,
-         5  // timeToPrepare, from 15 to 5
+         5,  // timeToPrepare, from 15 to 5
+         parentId
       )
 
       if (!this.room.currentGameSession) {
@@ -719,6 +731,7 @@ export default class Game {
          score: this.score,
          isCollaborative: this.is_collaborative,
          log: this.log,
+         parentGsId: this.parent_gs_id
       };
    
       try {
@@ -747,7 +760,8 @@ export default class Game {
          countdown: this.countdown,
          lifes: this.lifes,
          prepTime: this.prepTime,
-         score: this.score
+         score: this.score,
+         parent_gs_id: this.parent_gs_id || null
       }
 
       try {
