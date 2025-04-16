@@ -1,0 +1,50 @@
+{
+  "players": [
+    {
+      "id": "F1-3",
+      "nick_name": "Striker",
+      "date_add": "2025-02-14",
+      "last_name": "Williams",
+      "first_name": "Liam",
+      "gender": "Male",
+      "birth_date": "2001-01-10T00:00:00.000Z",
+      "league": {
+        "country": "USA",
+        "city": "New York",
+        "district": "Manhattan",
+        "other": "University League"
+      },
+      "games_history": {
+        "doubleGrid > gameRuleOne > L1": {
+          "best_time": 29,
+          "played": 1,
+          "played_today": 1
+        },
+        "doubleGrid > gameRuleOne > L2": {
+          "best_time": 31,
+          "played": 1,
+          "played_today": 1
+        }
+      },
+      "facility_session": {
+        "date_start": "2025-04-16T06:21:33.617Z",
+        "duration_m": 15,
+        "date_end": "2025-04-16T06:36:33.617Z"
+      },
+      "events_to_debrief": [
+        {
+          "type": "start_next_level",
+          "caption": "Player advanced to level 1"
+        }
+      ]
+    }
+  ],
+  "team": null,
+  "roomType": "doubleGrid",
+  "rule": "gameRuleOne",
+  "level": 3,
+  "book_room_until": "2025-04-16T06:27:55.561Z",
+  "countdown": 40,
+  "prepTime": 0,
+  "parent_gs_id": null
+}

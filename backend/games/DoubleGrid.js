@@ -1,8 +1,8 @@
 import Game from '../classes/Game.js'
 
 export default class DoubleGrid extends Game {
-   constructor (players, rule, level, team, book_room_until, env, roomInstance, timeForLevel = 120, timeToPrepare) {
-      super(players, rule, level, team, book_room_until, env, roomInstance, timeForLevel, timeToPrepare)
+   constructor (players, rule, level, team, book_room_until, env, roomInstance, timeForLevel = 120, timeToPrepare, parent_gs_id = null) {
+      super(players, rule, level, team, book_room_until, env, roomInstance, timeForLevel, timeToPrepare, parent_gs_id)
       this.running = false
       this.lightIdsSequence = []
       this.ruleLogic = null
