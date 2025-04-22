@@ -14,8 +14,6 @@ import { getAllAvailableGameRules } from '../utils/getAllAvailableGameRules.js'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const CONFIG_PATH = path.join(__dirname, '../config/game-config.json')
-
 process.on('uncaughtException', handleUncaughtException)
 
 dotenv.config()
@@ -53,7 +51,8 @@ export default class Room {
       this.roomTypeSpecifics = await this.loadRoomTypeSpecifics()
       this.availableGameRules = await getAllAvailableGameRules(this.type)
 
-      this.prepareLights()
+      // this.prepareLights()
+      this.roomTypeSpecifics.preparePhysicalElements(this)
       this.measure()
       this.startServer()
       this.setupWebSocketListeners()

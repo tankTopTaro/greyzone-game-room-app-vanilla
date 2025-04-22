@@ -1,13 +1,8 @@
-import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import getAvailableGames from '../utils/getAvailableGames.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-
-const GAMES_DIR = path.join(__dirname, '../games')
-const DB_PATH = path.join(__dirname, '../assets/db/db.json')
 
 export default class GameManager {
     constructor(env) {
@@ -16,19 +11,11 @@ export default class GameManager {
 
     async loadGame(roomInstance, roomType, rule, level, players, team, book_room_until, is_collaborative, timeToPrepare, parent_gs_id = null) {
         try {
-            // get all available game files
-            const availableGames = getAvailableGames()
+            const GAMES_DIR = path.join(__dirname, `../roomTypes/${roomType}/roomTypeSpecifics.mjs`)
 
-            // find a case-insensitive match for roomType
-            const matchedGame = availableGames.find(game => game.toLowerCase() === roomType.toLowerCase())
+            console.log(`Loading game: ${GAMES_DIR}`)
 
-            if (!matchedGame) throw new Error(`Game ${roomType} not found.`)
-
-            const gamePath = path.join(GAMES_DIR, `${matchedGame}.js`)
-
-            console.log(`Loading game: ${gamePath}`)
-
-            const { default: GameClass } = await import(`file://${gamePath}`)
+            const { default: GameClass } = await import(`file://${GAMES_DIR}`)
 
             const gameInstance = new GameClass(roomInstance, rule, level, players, team, book_room_until, is_collaborative, undefined, timeToPrepare, parent_gs_id)
 
