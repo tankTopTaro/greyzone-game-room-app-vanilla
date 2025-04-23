@@ -153,6 +153,7 @@ export default class Room {
         this.server.use(express.json())
         this.server.use(cors())
         this.server.use(express.static(path.join(__dirname, '../assets')))
+        this.server.use(express.static(path.join(__dirname, '../public')))
 
         // API routes
         this.server.use((req, res, next) => {
@@ -245,11 +246,11 @@ export default class Room {
             res.send('<html><body><h1>Hello</h1></body></html>')
         })
         this.server.get('/monitor', (req, res) => {
-            const filePath = path.join(__dirname, '../assets/pages/monitor.html')
+            const filePath = path.join(__dirname, '../public/monitor.html')
             res.sendFile(filePath)
         })
         this.server.get('/room-screen', (req, res) => {
-            const filePath = path.join(__dirname, '../assets/pages/room.html')
+            const filePath = path.join(__dirname, '../public/room.html')
             res.sendFile(filePath)
         })
         this.server.get('/get/roomData', (req, res) => {

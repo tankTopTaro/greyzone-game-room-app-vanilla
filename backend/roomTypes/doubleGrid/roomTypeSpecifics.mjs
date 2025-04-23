@@ -54,17 +54,17 @@ export default class DoubleGrid extends GameSession {
       this.room.socket.broadcastMessage('monitor', message)
       this.room.socket.broadcastMessage('room-screen', message)
    }
+}
 
-   preparePhysicalElements(room) {
-      room.addMatrix(130,130,'rectangle','ledSwitch',960,480,25,25,5,5,'mainFloor', true)
-      room.addMatrix(255,70,'rectangle','ledSwitch',960,100,15,15,200,40, 'wallButtons',false)
-      room.addMatrix(255,640,'rectangle','ledSwitch',960,100,15,15,200,40,'wallButtons',false)
-      room.addMatrix(70,240,'rectangle','ledSwitch',100,500,15,15,40,200,'wallButtons',false)
-      room.addMatrix(1120,240,'rectangle','ledSwitch',100,500,15,15,40,200,'wallButtons',false)
-      
-      room.addMatrix(250,30,'rectangle','screen',960,100,25,25,190,40, 'wallScreens',false)
-      room.addMatrix(250,670,'rectangle','screen',960,100,25,25,190,40,'wallScreens',false)
-      room.addMatrix(30,235,'rectangle','screen',100,500,25,25,40,190,'wallScreens',false)
-      room.addMatrix(1150,235,'rectangle','screen',100,500,25,25,40,190,'wallScreens',false)
-   }
+export function preparePhysicalElements(room) {
+   room.addMatrix(130,130,'rectangle','ledSwitch',960,480,25,25,5,5,'mainFloor', true)
+   room.addMatrix(255,70,'rectangle','ledSwitch',960,100,15,15,200,40, 'wallButtons',false)
+   room.addMatrix(255,640,'rectangle','ledSwitch',960,100,15,15,200,40,'wallButtons',false)
+   room.addMatrix(70,240,'rectangle','ledSwitch',100,500,15,15,40,200,'wallButtons',false)
+   room.addMatrix(1120,240,'rectangle','ledSwitch',100,500,15,15,40,200,'wallButtons',false)
+   
+   room.addMatrix(250,30,'rectangle','screen',960,100,25,25,190,40, 'wallScreens',false)
+   room.addMatrix(250,670,'rectangle','screen',960,100,25,25,190,40,'wallScreens',false)
+   room.addMatrix(30,235,'rectangle','screen',100,500,25,25,40,190,'wallScreens',false)
+   room.addMatrix(1150,235,'rectangle','screen',100,500,25,25,40,190,'wallScreens',false)
 }
