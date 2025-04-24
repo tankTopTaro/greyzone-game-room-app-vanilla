@@ -7,6 +7,11 @@ document.title = `GRA | Room`
 const WS_URL = `ws://${window.location.hostname}:8082`
 const CLIENT = 'room-screen'
 
+const GFA_CONFIG = {
+    HOSTNAME: '192.168.254.105',
+    PORT: 3001
+ }
+
 let wsService = null
 
 const countdownElement = document.getElementById('countdown')
@@ -134,7 +139,7 @@ function renderGameStatesData(data) {
 
         // Create an image element for the avatar
         const avatarImg = document.createElement('img');
-        avatarImg.src = `http://192.168.254.100:3001/api/images/players/${player.id}.jpg` || 'https://placehold.co/40x40?text=No+Image';
+        avatarImg.src = `http://${GFA_CONFIG.HOSTNAME}:${GFA_CONFIG.PORT}/api/images/players/${player.id}.jpg` || 'https://placehold.co/40x40?text=No+Image';
         avatarImg.alt = `${player.nick_name || 'Unknown'}'s avatar`;
         avatarImg.classList.add('avatar');
 
