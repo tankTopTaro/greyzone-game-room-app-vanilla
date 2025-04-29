@@ -1,6 +1,0 @@
-1. Everything not specific for a room type will be left in the Room class.
-2. Define the specific logic for the room in roomTypeSpecific.
-3. Rename Game class into GameSession class
-4. Move specific game start method into GameSession class.
-5. So everything inside the current games class will be split to either GameSession class or the roomTypeSpecifics class
-6. Adjust the GameManager class to correctly load the game inside the roomTypes directory.

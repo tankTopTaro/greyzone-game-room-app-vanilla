@@ -20,7 +20,8 @@ const green = hsvToRgb([85,255,255])
 const red = hsvToRgb([0,255,255])
 
 export default class GameSession {
-    constructor(roomInstance, rule, level, players = [], team, book_room_until, is_collaborative = true, timeForLevel = 120, timeToPrepare, parent_gs_id) {
+    constructor(roomInstance, rule, level, players = [], team, book_room_until, is_collaborative = true, timeForLevel = 120, timeToPrepare, parent_gs_id, id) {
+      this.id = id
       this.players = players
       this.rule = rule
       this.level = level
@@ -324,11 +325,6 @@ export default class GameSession {
       const timeTaken = Math.round((Date.now() - this.lastLevelStartedAt) / 1000)
       const levelKey = `${this.room.type} > ${this.rule} > L${this.level}`
 
-      // Generate parent_gs_id
-      const formatName = name => name.trim().replace(/\s+/g, '_')
-      const baseName = formatName(this.team?.name || this.players[0]?.nick_name || 'anon')
-      this.parent_gs_id = `${baseName}_${this.room.type}_${this.rule}_L${this.level}_win`
-
       // Update team and player games_history
       this.updateGamesHistory(this.team, levelKey, timeTaken, true)
       this.players.forEach(player => this.updateGamesHistory(player, levelKey, timeTaken, true))
@@ -358,11 +354,6 @@ export default class GameSession {
       // Calculate the time taken to complete the level
       const timeTaken = Math.round((Date.now() - this.lastLevelStartedAt) / 1000)
       const levelKey = `${this.room.type} > ${this.rule} > L${this.level}`
-
-      // Generate parent_gs_id
-      const formatName = name => name.trim().replace(/\s+/g, '_')
-      const baseName = formatName(this.team?.name || this.players[0]?.nick_name || 'anon')
-      this.parent_gs_id = `${baseName}_${this.room.type}_${this.rule}_L${this.level}_lose`
 
       // Update team and player games_history
       this.updateGamesHistory(this.team, levelKey, timeTaken, false)
@@ -442,7 +433,7 @@ export default class GameSession {
          this.book_room_until,
          this.is_collaborative,
          5, // timeToPrepare, from 15 to 5
-         this.parent_gs_id
+         this.id  // pass this session's ID as parent_gs_id
       )
 
       if (!this.room.currentGameSession) {
@@ -472,6 +463,8 @@ export default class GameSession {
          return 
       }
 
+      this.parent_gs_id = this.id
+
       // Properly assign the new game session
       this.room.currentGameSession = await this.room.gameManager.loadGame(
          this.room,
@@ -483,7 +476,7 @@ export default class GameSession {
          this.book_room_until,
          this.is_collaborative,
          5,  // timeToPrepare, from 15 to 5
-         this.parent_gs_id
+         this.id // pass this session's ID as parent_gs_id
       )
 
       if (!this.room.currentGameSession) {

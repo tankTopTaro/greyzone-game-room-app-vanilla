@@ -1,8 +1,8 @@
 import GameSession from '../../classes/GameSession.js'
 
 export default class Basketball extends GameSession {
-   constructor (players, rule, level, team, book_room_until, env, roomInstance, timeForLevel = 120, timeToPrepare, parent_gs_id = null) {
-      super(players, rule, level, team, book_room_until, env, roomInstance, timeForLevel, timeToPrepare, parent_gs_id)
+   constructor (roomInstance, rule, level, players, team, book_room_until, is_collaborative, timeForLevel = 120, timeToPrepare, parent_gs_id = null, id) {
+      super(roomInstance, rule, level, players, team, book_room_until, is_collaborative, timeForLevel, timeToPrepare, parent_gs_id, id)
       this.running = false
 
       this.showColor = undefined

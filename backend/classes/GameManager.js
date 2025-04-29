@@ -9,7 +9,7 @@ export default class GameManager {
         this.env = env
     }
 
-    async loadGame(roomInstance, roomType, rule, level, players, team, book_room_until, is_collaborative, timeToPrepare, parent_gs_id = null) {
+    async loadGame(roomInstance, id, roomType, rule, level, players, team, book_room_until, is_collaborative, timeToPrepare, parent_gs_id = null) {
         try {
             const GAMES_DIR = path.join(__dirname, `../roomTypes/${roomType}/roomTypeSpecifics.mjs`)
 
@@ -17,7 +17,7 @@ export default class GameManager {
 
             const { default: GameClass } = await import(`file://${GAMES_DIR}`)
 
-            const gameInstance = new GameClass(roomInstance, rule, level, players, team, book_room_until, is_collaborative, undefined, timeToPrepare, parent_gs_id)
+            const gameInstance = new GameClass(roomInstance, rule, level, players, team, book_room_until, is_collaborative, undefined, timeToPrepare, parent_gs_id, id)
 
             const result = await gameInstance.init()
 

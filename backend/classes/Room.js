@@ -187,7 +187,7 @@ export default class Room {
                res.status(200).json({message: 'Session received'})
       
                // Start the session
-               this.startGame(roomType, rule, level, players, team, book_room_until, is_collaborative)
+               this.startGame(id, roomType, rule, level, players, team, book_room_until, is_collaborative)
                   .catch(err => {
                      throw new Error("Error starting game.", err)
                   })
@@ -343,12 +343,12 @@ export default class Room {
         return true
     }
 
-    async startGame(roomType, rule, level, players, team, book_room_until, is_collaborative) {
+    async startGame(id, roomType, rule, level, players, team, book_room_until, is_collaborative) {
         //console.log('startGame request: ', { roomType, rule, level, players, team, book_room_until })
         if(this.isFree) {
             this.isFree = false
             
-            this.currentGameSession = await this.gameManager.loadGame(this, roomType, rule, level, players, team, book_room_until, is_collaborative)
+            this.currentGameSession = await this.gameManager.loadGame(this, id, roomType, rule, level, players, team, book_room_until, is_collaborative)
          
             if (this.currentGameSession) {
                this.currentGame = this.currentGameSession
