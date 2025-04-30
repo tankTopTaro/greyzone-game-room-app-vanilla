@@ -167,7 +167,7 @@ export default class Room {
 
         this.server.use('/api/start-game-session', async (req, res) => {
             try {
-               const { team, players, room, book_room_until, is_collaborative } = req.body
+               const { id, team, players, room, book_room_until, is_collaborative } = req.body
    
                if (!room || !players) {
                   return res.status(400).json({ error: 'Missing data'})
@@ -192,7 +192,7 @@ export default class Room {
                      throw new Error("Error starting game.", err)
                   })
             } catch (error) {
-               console.error('Error in start-game-session:', err);
+               console.error('Error in start-game-session:', error);
                return res.status(500).json({ error: 'Internal server error' });
             }
         })

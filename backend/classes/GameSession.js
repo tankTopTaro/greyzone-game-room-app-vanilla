@@ -422,9 +422,13 @@ export default class GameSession {
       this.gameLogEvent( this.team, 'start_same_level', `Team replay level ${this.level}`)
       this.players.forEach(player => this.gameLogEvent(player, 'start_same_level', `player replay level ${this.level}`))
 
+      const [prefix, number] = this.id.split('-')
+      const nextId = `${prefix}-${parseInt(number, 10) + 1}`
+
       // Create a new session
       this.room.currentGameSession = await this.room.gameManager.loadGame(
          this.room,
+         nextId,
          this.room.type,
          this.rule, 
          this.level, 
@@ -463,11 +467,13 @@ export default class GameSession {
          return 
       }
 
-      this.parent_gs_id = this.id
+      const [prefix, number] = this.id.split('-')
+      const nextId = `${prefix}-${parseInt(number, 10) + 1}`
 
       // Properly assign the new game session
       this.room.currentGameSession = await this.room.gameManager.loadGame(
          this.room,
+         nextId,
          this.room.type,
          this.rule, 
          parseInt(this.level, 10) + 1, 
@@ -744,6 +750,7 @@ export default class GameSession {
 
     async submitFinishedGameSession() {
       const gameSessionData = {
+         id: this.id,
          players: this.players,
          team: this.team,
          roomType: this.room.type,
@@ -774,6 +781,7 @@ export default class GameSession {
       this.clearGameStates()
       
       const gameStates = {
+         id: this.id,
          players: this.players,
          team: this.team,
          roomType: this.room.type,

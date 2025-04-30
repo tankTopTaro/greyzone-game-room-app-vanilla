@@ -83,9 +83,9 @@ export default class Basketball extends GameSession {
         this.room.socket.broadcastMessage('monitor', message)
         this.room.socket.broadcastMessage('room-screen', message)
     }
-
-    preparePhysicalElements(room) {
-      room.addMatrix(130, 130, 'rectangle', 'ledSwitch', 960, 100, 80, 80, 90, 5, 'wallButtons', false)
-   }
    
+}
+
+export function preparePhysicalElements(room) {
+   room.addMatrix(130, 130, 'rectangle', 'ledSwitch', 960, 100, 80, 80, 90, 5, 'wallButtons', false)
 }
