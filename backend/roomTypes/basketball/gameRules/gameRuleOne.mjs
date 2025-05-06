@@ -3,7 +3,9 @@ export function getShapes(level) {
 }
 
 export function prepareGameLogic(game) {
-   const colorsSequence = makeColorSequence(3, game.colors)
+   const baseSequenceSize = 3
+   const sequenceSize = baseSequenceSize + (game.level - 1)
+   const colorsSequence = makeColorSequence(sequenceSize, game.colors)
 
    console.log('Color sequence:', colorsSequence.map(c => c.name))
 

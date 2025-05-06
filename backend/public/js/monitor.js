@@ -8,7 +8,7 @@ const WS_URL = `ws://${window.location.hostname}:8082`
 const CLIENT = 'monitor'
 
 const GFA_CONFIG = {
-   HOSTNAME: '192.168.254.102',
+   HOSTNAME: '192.168.5.108',
    PORT: 3001
 }
 

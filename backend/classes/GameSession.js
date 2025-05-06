@@ -763,9 +763,11 @@ export default class GameSession {
          log: this.log,
          parentGsId: this.parent_gs_id
       };
+
+      console.log(gameSessionData)
    
       try {
-         const response = await axios.post(`http://${process.env.GFA_HOSTNAME}:${process.env.GFA_PORT}/api/game-sessions`, gameSessionData);
+         const response = await axios.post(`http://${process.env.GFA_HOSTNAME}:${process.env.GFA_PORT}/api/game-sessions/`, gameSessionData);
    
          if (response.status === 200) {
             console.log('Game session uploaded successfully');
@@ -830,7 +832,7 @@ export default class GameSession {
     }  
 
     updateGamesHistory(entity, levelKey, timeTaken, isCompleted) {
-      if (!entity || !entity.games_history) {
+      if (!entity || !entity?.games_history) {
          console.error("Invalid entity or games_history")
          return
       }
