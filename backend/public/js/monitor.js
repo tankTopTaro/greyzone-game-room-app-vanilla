@@ -46,7 +46,7 @@ function startListeningToSocket() {
                 renderStatusData(data.message)
             },
             'colorNames': () => {
-                // playAudio(data['cache-audio-file-and-play'])
+                playAudio(data['cache-audio-file-and-play'])
             },
             'colorNamesEnd': () => {
                 wsService.send({
@@ -64,11 +64,11 @@ function startListeningToSocket() {
             'isUpcomingGameSession': () => console.log(data),
             'levelCompleted': () => {
                 renderStatusData(data.message)
-                // playAudio(data['cache-audio-file-and-play'])
+                playAudio(data['cache-audio-file-and-play'])
             },
             'levelFailed': () => {
                 renderStatusData(data.message)
-                // playAudio(data['cache-audio-file-and-play'])
+                playAudio(data['cache-audio-file-and-play'])
             },
             'newLevelStarts': () => {
                resetDisplay()
@@ -83,7 +83,7 @@ function startListeningToSocket() {
                renderStatusData(data.message)
             },
             'playerSuccess': () => {
-                // playAudio(data['cache-audio-file-and-play'])
+                playAudio(data['cache-audio-file-and-play'])
             },
             'playerFailed': () => console.log('playerFailed'),
             'roomDisabled': () => renderStatusData(data.message),
@@ -101,9 +101,9 @@ function startListeningToSocket() {
             },
             'updatePreparationInterval': () => {
                 renderCountdownData(data.countdown)
-                // if (data['cache-audio-file']) preloadAudio(data['cache-audio-file'])
+                if (data['cache-audio-file']) preloadAudio(data['cache-audio-file'])
 
-                // if (data['play-audio-file']) playAudio(data['play-audio-file'])
+                if (data['play-audio-file']) playAudio(data['play-audio-file'])
             }
          }
    
@@ -331,7 +331,7 @@ function handleCanvasClick(event) {
 function renderGameStatesData(data) {
     countdownElement.textContent = formatTime(data.countdown)
     roomInfoElement.textContent = `Room: ${data.roomType} > Rule: ${data.rule} > Level: ${data.level}`
-    bookRoomUntilElement.textContent = formatDate(data.book_room_until)
+    bookRoomUntilElement.textContent = `Book Room Until: ${formatDate(data.book_room_until)}`
     teamNameElement.textContent = data.team?.name
     roomPlayersElement.innerHTML = ''
 
@@ -366,7 +366,6 @@ function renderGameStatesData(data) {
 
         // Append the list item to the container
         roomPlayersElement.appendChild(li);
-
         roomPlayersElement.offsetHeight; // Force reflow
     })
 }

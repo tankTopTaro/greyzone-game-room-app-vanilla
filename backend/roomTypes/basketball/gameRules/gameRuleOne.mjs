@@ -4,12 +4,14 @@ export function getShapes(level) {
 
 export function prepareGameLogic(game) {
    const baseSequenceSize = 3
-   const sequenceSize = baseSequenceSize + (game.level - 1)
+   const maxSequenceSize = 6
+   const sequenceSize = Math.min(baseSequenceSize + (game.level - 1), maxSequenceSize)
    const colorsSequence = makeColorSequence(sequenceSize, game.colors)
 
    console.log('Color sequence:', colorsSequence.map(c => c.name))
 
-   game.lightColorSequence = new Array(colorsSequence.length).fill(null)
+   //game.lightColorSequence = new Array(colorsSequence.length).fill(null)
+   game.lightColorSequence = colorsSequence.slice()
 
    showColorSequence(colorsSequence, game)
 }
@@ -61,10 +63,10 @@ function showColorSequence(colorsSequence, game) {
 
    game.room.lightGroups.wallButtons.forEach((light, i) => {
       light.onClick = 'report'
-      game.lightColorSequence[i] = colorsSequence[i % colorsSequence.length]
+      //game.lightColorSequence[i] = colorsSequence[i % colorsSequence.length]
   }) 
 
-  game.lightColorSequence.length = colorsSequence.length
+  // game.lightColorSequence.length = colorsSequence.length
  }
 
 function makeColorSequence(size, colors) {

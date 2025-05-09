@@ -152,8 +152,8 @@ export default class Room {
 
         this.server.use(express.json())
         this.server.use(cors())
-        this.server.use(express.static(path.join(__dirname, '../assets')))
         this.server.use(express.static(path.join(__dirname, '../public')))
+        this.server.use(express.static(path.join(__dirname, '../public/assets')))
 
         // API routes
         this.server.use((req, res, next) => {

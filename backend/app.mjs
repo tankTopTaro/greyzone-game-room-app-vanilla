@@ -1,3 +1,3 @@
 import Room from './classes/Room.js'
 
-const room = new Room('doubleGrid')
+const room = new Room('basketball')

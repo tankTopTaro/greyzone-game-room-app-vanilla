@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const GAME_STATES_PATH = path.join(__dirname, '../assets/db/game_states.json')
+const GAME_STATES_PATH = path.join(__dirname, '../public/assets/db/game_states.json')
 
 export default class Socket extends EventEmitter {
     constructor(port) {

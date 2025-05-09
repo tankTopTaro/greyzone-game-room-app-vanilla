@@ -12,7 +12,7 @@ process.on('uncaughtException', handleUncaughtException)
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const GAME_STATES_PATH = path.join(__dirname, '../assets/db/game_states.json')
+const GAME_STATES_PATH = path.join(__dirname, '../public/assets/db/game_states.json')
 
 const black = hsvToRgb([0,0,0])
 const yellow = hsvToRgb([42,255,255])
@@ -59,6 +59,15 @@ export default class GameSession {
       this.penaltyTimestamps = []
 
       this.parent_gs_id = parent_gs_id || null
+
+      // DoubleGrid
+      this.lightIdsSequence = undefined
+
+      // Basketball
+      this.showColor = undefined
+      this.lightColorSequence = undefined
+      this.currentColorIndex = undefined
+      this.colors = undefined
     }
 
     async init() {
@@ -326,7 +335,9 @@ export default class GameSession {
       const levelKey = `${this.room.type} > ${this.rule} > L${this.level}`
 
       // Update team and player games_history
-      this.updateGamesHistory(this.team, levelKey, timeTaken, true)
+      if (this.team) {
+         this.updateGamesHistory(this.team, levelKey, timeTaken, true)
+      }
       this.players.forEach(player => this.updateGamesHistory(player, levelKey, timeTaken, true))
 
       this.isWon = true
@@ -356,7 +367,9 @@ export default class GameSession {
       const levelKey = `${this.room.type} > ${this.rule} > L${this.level}`
 
       // Update team and player games_history
-      this.updateGamesHistory(this.team, levelKey, timeTaken, false)
+      if (this.team) {
+         this.updateGamesHistory(this.team, levelKey, timeTaken, false)
+      }
       this.players.forEach(player => this.updateGamesHistory(player, levelKey, timeTaken, false))
       
       const message = {
@@ -605,10 +618,6 @@ export default class GameSession {
       this.status = 'running'
       console.log('Game Session started.')
     }
-  
-    setupGame() {
-      console.log('Setting up game...')
-    }
 
     startChoiceButtons(color) {
       if (this.isWaitingForChoiceButton) {
@@ -639,6 +648,22 @@ export default class GameSession {
       this.room.currentGameSession = undefined
       this.room.currentGame = undefined
       this.clearGameStates()
+    }
+
+    setupGame() {
+      console.log('Setting up game...')
+    }
+
+    stop () {
+      console.log('Stopping up game...')
+    }
+
+    broadcastSuccess() {
+      console.log('Broadcasting game success...')
+    }
+
+    broadcastFailure() {
+      console.log('Broadcasting game failure...')
     }
 
     // Session
@@ -778,7 +803,6 @@ export default class GameSession {
     }
 
     // Data
-
     saveGameStates() {
       this.clearGameStates()
       

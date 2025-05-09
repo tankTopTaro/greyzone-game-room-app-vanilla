@@ -1,6 +1,6 @@
 import GameSession from '../../classes/GameSession.js'
 
-export default class DoubleGrid extends GameSession {
+/* export default class DoubleGrid extends GameSession {
    constructor (roomInstance, rule, level, players, team, book_room_until, is_collaborative, timeForLevel = 120, timeToPrepare, parent_gs_id = null, id) {
       super(roomInstance, rule, level, players, team, book_room_until, is_collaborative, timeForLevel, timeToPrepare, parent_gs_id, id)
       this.running = false
@@ -54,6 +54,60 @@ export default class DoubleGrid extends GameSession {
       this.room.socket.broadcastMessage('monitor', message)
       this.room.socket.broadcastMessage('room-screen', message)
    }
+} */
+
+export function doubleGrid(gameSession) {
+   gameSession.running = false
+   gameSession.lightIdsSequence = []
+
+   gameSession.setupGame = function () {
+      this.lastLevelStartedAt = Date.now()
+
+      if (this.animationMetronome) {
+         clearInterval(this.animationMetronome)
+      }
+
+      this.animationMetronome = setInterval(() => {
+         this.updateShapes()
+         this.updateCountdown()
+         this.applyShapesOnLights()
+         this.room.sendLightsInstructionsIfIdle()
+      }, 1000/25)
+   }
+
+   gameSession.stop = function () {
+      if (this.status === 'running') {
+         this.running = false
+         this.reset()
+         console.log('Game has been stopped')
+         const message = {
+            type: 'roomDisabled',
+            message: 'Room has been disabled.'
+         }
+         this.room.socket.broadcastMessage('monitor', message)
+         this.room.socket.broadcastMessage('room-screen', message)
+      }
+   }
+
+   gameSession.broadcastFailure = function () {
+      const message = {
+         type: 'playerFailed',
+         'cache-audio-file-and-play': 'playerLoseLife'
+      }
+      this.room.socket.broadcastMessage('monitor', message)
+      this.room.socket.broadcastMessage('room-screen', message)
+   }
+
+   gameSession.broadcastSuccess = function () {
+      const message = {
+         type: 'playerSuccess',
+         'cache-audio-file-and-play': 'playerScored'
+      }
+      this.room.socket.broadcastMessage('monitor', message)
+      this.room.socket.broadcastMessage('room-screen', message)
+   }
+
+   return gameSession
 }
 
 export function preparePhysicalElements(room) {
